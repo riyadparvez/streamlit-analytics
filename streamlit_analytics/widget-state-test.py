@@ -21,6 +21,7 @@ default_vals: dict[str, Any] = {
     humidity_key: 20.0,
 }
 
+
 def f():
     print("========================")
     print("boys boys")

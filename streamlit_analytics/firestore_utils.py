@@ -35,4 +35,3 @@ if __name__ == "__main__":
     collection_name = "analytics-test"
     collection_ref = db.collection(collection_name)
     get_document(collection_ref)
-    

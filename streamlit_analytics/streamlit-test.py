@@ -22,7 +22,7 @@ with track():
             "R",
         ],
         format_func=lambda x: d[x],
-        key="options"
+        key="options",
     )
 
     st.write("You selected:", options)
