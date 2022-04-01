@@ -9,6 +9,8 @@ from loguru import logger
 from objprint import config, op, install; install(); config(line_number=True, arg_name=True,)
 from typing import Any, Callable, Final
 
+from firestore_utils import *
+
 
 def log_formatter(record):
     if len(record["extra"]) > 0:
@@ -23,11 +25,12 @@ logger.add(
     sys.stdout, level="INFO", colorize=False, format=log_formatter, backtrace=True
 )
 
-_current_run_key: Final[str] = "__current_run__"
+_current_run_key: Final[str] = "current_run"
 _namespace_key: Final[str] = "riyad_utils"
 
 class StreamlitAnalytics:
-    def __init__(self, default_vals: dict[str, Any]) -> None:
+    def __init__(self, application_name: str, default_vals: dict[str, Any]) -> None:
+        self.application_name = application_name
         self.default_vals = default_vals
         self.query_param_keys = set(default_vals.keys())
 
@@ -58,6 +61,7 @@ class StreamlitAnalytics:
 
     def sync_widget_state(self, widget_key: str, on_change_func: Callable) -> None:
         self.sync_session_state_to_query_params()
+        logger.info(f"On {widget_key} changed")
         on_change_func()
 
 
@@ -66,17 +70,18 @@ class StreamlitAnalytics:
 
 
     def track_rerun(self) -> None:
-        if _current_run_key not in st.session_state:
+        if _namespace_key in st.session_state and _current_run_key in st.session_state[_namespace_key]:
+            st.session_state[_namespace_key][_current_run_key] += 1
+            logger.info(f"{st.session_state[_namespace_key][_current_run_key]}th run")
+        else:
             logger.info("New fresh run")
             st.session_state[_namespace_key][_current_run_key] = 1
             self.sync_query_params_to_session_state()
-        else:
-            st.session_state[_namespace_key][_current_run_key] += 1
-            logger.info(f"{st.session_state[_namespace_key][_current_run_key]}th run")
 
 
     def start_tracking(self) -> None:
         logger.info("Started tracking session")
+
         current_timestamp = datetime.now(timezone.utc)
         st.session_state[_namespace_key]["start_timestamp"] = current_timestamp
         st.session_state[_namespace_key]["query_params"] = st.experimental_get_query_params()
@@ -92,6 +97,8 @@ class StreamlitAnalytics:
 
         # with open("session_state.json", "a") as f:
         #     f.write(f"{json.dumps(session_state_dict, sort_keys=True)}\n")
+        
+        insert_current_run(self.application_name, session_state_dict[_namespace_key]["session_id"], session_state_dict)
 
         logger.info("Stopped tracking session")
 
@@ -99,7 +106,9 @@ class StreamlitAnalytics:
     @contextmanager
     def track(self):
         current_session_id = str(uuid.uuid4())
-        st.session_state[_namespace_key] = {}
+
+        if _namespace_key not in st.session_state:
+            st.session_state[_namespace_key] = {}
         st.session_state[_namespace_key]["session_id"] = current_session_id
 
         with logger.contextualize(session_id=current_session_id):

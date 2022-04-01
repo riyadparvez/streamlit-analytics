@@ -16,11 +16,6 @@ config(
 temperature_key = "temperature"
 humidity_key = "humidity"
 
-query_param_keys: set = {
-    temperature_key,
-    humidity_key,
-}
-
 default_vals: dict[str, Any] = {
     temperature_key: 50.0,
     humidity_key: 20.0,
@@ -32,7 +27,7 @@ def f():
     print("========================")
 
 
-sa = StreamlitAnalytics(default_vals)
+sa = StreamlitAnalytics("analytics-test", default_vals)
 
 with sa.track():
     temperature = st.slider(
@@ -48,5 +43,5 @@ with sa.track():
         min_value=0.0,
         max_value=100.0,
         key=humidity_key,
-        on_change=sa.get_on_change_func(temperature_key, f),
+        on_change=sa.get_on_change_func(humidity_key, f),
     )
