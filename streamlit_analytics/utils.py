@@ -12,6 +12,7 @@ from typing import Any, Callable
 from constants import *
 from firestore_utils import *
 from db_utils import *
+from objprint import config, op, install; install(); config(line_number=True, arg_name=True,)
 
 
 def log_formatter(record):
@@ -27,6 +28,7 @@ logger.add(
     sys.stdout, level="INFO", colorize=False, format=log_formatter, backtrace=True
 )
 
+do_nothing: Callable = lambda: None
 
 class StreamlitAnalytics:
     def __init__(self,
@@ -73,11 +75,12 @@ class StreamlitAnalytics:
     def sync_widget_state(self, widget_key: str, on_change_func: Callable) -> None:
         if self.sync_query_params:
             self.sync_session_state_to_query_params()
-        logger.info(f"On {widget_key} changed")
+        logger.info(f"On {widget_key} changed")        
+        st.session_state[namespace_key]["interactions"].append({widget_key: st.session_state[widget_key]})
         on_change_func()
 
 
-    def get_on_change_func(self, widget_key: str, on_change_func: Callable) -> Callable:
+    def get_on_change_func(self, widget_key: str, on_change_func: Callable = do_nothing) -> Callable:
         return partial(self.sync_widget_state, widget_key, on_change_func)
 
 
@@ -111,7 +114,7 @@ class StreamlitAnalytics:
         st.session_state[namespace_key]["end_timestamp"] = current_timestamp.isoformat()
 
         session_state_dict = st.session_state.to_dict()
-
+        op(session_state_dict)
         # with open("session_state.json", "a") as f:
         #     f.write(f"{json.dumps(session_state_dict, sort_keys=True)}\n")
 
@@ -130,6 +133,7 @@ class StreamlitAnalytics:
 
         if namespace_key not in st.session_state:
             st.session_state[namespace_key] = {}
+            st.session_state[namespace_key]["interactions"] = []
         st.session_state[namespace_key]["session_id"] = current_session_id
 
         with logger.contextualize(session_id=current_session_id):
