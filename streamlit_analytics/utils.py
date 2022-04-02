@@ -1,3 +1,4 @@
+from __future__ import annotations
 import streamlit as st
 import sys
 import uuid
@@ -30,7 +31,7 @@ logger.add(
 class StreamlitAnalytics:
     def __init__(self,
         application_name: str,
-        default_vals: dict[str, Any],
+        default_vals: dict[str, Any] | None = None,
         db_uri: str = None,
         json_file_path: str = None,
         firestore_key_file: str = None,
@@ -38,7 +39,9 @@ class StreamlitAnalytics:
     ) -> None:
         self.application_name = application_name
         self.default_vals = default_vals
-        self.query_param_keys = set(default_vals.keys())
+        self.sync_query_params = self.default_vals is not None
+        if self.sync_query_params:
+            self.query_param_keys = set(default_vals.keys())
         self.db_adapter = DbAdapter("sqlite:////tmp/st.db")
 
 
@@ -68,7 +71,8 @@ class StreamlitAnalytics:
 
 
     def sync_widget_state(self, widget_key: str, on_change_func: Callable) -> None:
-        self.sync_session_state_to_query_params()
+        if self.sync_query_params:
+            self.sync_session_state_to_query_params()
         logger.info(f"On {widget_key} changed")
         on_change_func()
 
@@ -87,7 +91,8 @@ class StreamlitAnalytics:
         else:
             logger.info("New fresh run")
             st.session_state[namespace_key][current_run_key] = 1
-            self.sync_query_params_to_session_state()
+            if self.sync_query_params:
+                self.sync_query_params_to_session_state()
 
 
     def start_tracking(self) -> None:

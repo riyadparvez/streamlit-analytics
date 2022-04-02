@@ -1,6 +1,5 @@
 from __future__ import annotations
 import streamlit as st
-from functools import partialmethod
 from loguru import logger
 from typing import Any
 

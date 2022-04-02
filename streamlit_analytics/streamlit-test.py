@@ -1,5 +1,5 @@
 import streamlit as st
-from utils import track
+from utils import StreamlitAnalytics
 
 d = {
     "G": "Green",
@@ -8,7 +8,9 @@ d = {
     "B": "Blue",
 }
 
-with track():
+sa = StreamlitAnalytics("analytics-test",)
+
+with sa.track():
     options = st.multiselect(
         "What are your favorite colors",
         [
