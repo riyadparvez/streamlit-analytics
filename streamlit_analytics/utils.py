@@ -45,6 +45,7 @@ class StreamlitAnalytics:
         if self.sync_query_params:
             self.query_param_keys = set(default_vals.keys())
         self.db_adapter = DbAdapter("sqlite:////tmp/st.db")
+        self.firestore_adapter = FirestoreAdapter(application_name)
 
 
     def sync_query_params_to_session_state(self) -> None:
@@ -130,8 +131,7 @@ class StreamlitAnalytics:
             # with open("session_state.json", "a") as f:
             #     f.write(f"{json.dumps(session_state_dict, sort_keys=True)}\n")
 
-            insert_new_doc(
-                self.application_name,
+            self.firestore_adapter.insert_doc(
                 session_state_dict[namespace_key]["session_id"],
                 session_state_dict,
             )
