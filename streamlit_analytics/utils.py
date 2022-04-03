@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from functools import partial
 from loguru import logger
-from typing import Any, Callable
+from typing import Any, Callable, Final
 
 from constants import *
 from firestore_utils import *
@@ -28,7 +28,14 @@ logger.add(
     sys.stdout, level="INFO", colorize=False, format=log_formatter, backtrace=True
 )
 
-do_nothing: Callable = lambda: None
+_DO_NOTHING: Final[Callable] = lambda: None
+
+def _serialize(d: dict[str, Any]) -> dict[str, Any]:
+    for k, v in d.items():
+        if type(v).__module__ != "builtins" and not isinstance(v, datetime):
+            op(k)
+            d[k] = str(v)
+    return d
 
 class StreamlitAnalytics:
     def __init__(self,
@@ -81,7 +88,7 @@ class StreamlitAnalytics:
         on_change_func()
 
 
-    def get_on_change_func(self, widget_key: str, on_change_func: Callable = do_nothing) -> Callable:
+    def get_on_change_func(self, widget_key: str, on_change_func: Callable = _DO_NOTHING) -> Callable:
         return partial(self.sync_widget_state, widget_key, on_change_func)
 
 
@@ -104,7 +111,7 @@ class StreamlitAnalytics:
             logger.info("Started tracking session")
 
             current_timestamp = datetime.now(timezone.utc)
-            st.session_state[namespace_key]["start_timestamp"] = current_timestamp.isoformat()
+            st.session_state[namespace_key]["start_timestamp"] = current_timestamp
             st.session_state[namespace_key][
                 "query_params"
             ] = st.experimental_get_query_params()
@@ -116,16 +123,11 @@ class StreamlitAnalytics:
     def stop_tracking(self) -> None:
         try:
             current_timestamp = datetime.now(timezone.utc)
-            st.session_state[namespace_key]["end_timestamp"] = current_timestamp.isoformat()
+            st.session_state[namespace_key]["end_timestamp"] = current_timestamp
 
             session_state_dict = st.session_state.to_dict()
-            for k, v in session_state_dict.items():
-                if type(v).__module__ == "__builtin__":
-                    session_state_dict[k] = str(v)
-            for interaction in session_state_dict[namespace_key]["interactions"]:
-                for k, v in interaction.items():
-                    if type(v).__module__ == "__builtin__":
-                        interaction[k] = str(v)
+            session_state_dict = _serialize(session_state_dict)
+            session_state_dict[namespace_key]["interactions"] = [_serialize(interaction) for interaction in session_state_dict[namespace_key]["interactions"]]
 
             op(session_state_dict)
             # with open("session_state.json", "a") as f:
@@ -135,6 +137,7 @@ class StreamlitAnalytics:
                 session_state_dict[namespace_key]["session_id"],
                 session_state_dict,
             )
+
             self.db_adapter.insert_row(session_state_dict)
             logger.info("Stopped tracking session")
         except Exception as e:
