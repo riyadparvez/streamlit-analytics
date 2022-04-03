@@ -99,42 +99,60 @@ class StreamlitAnalytics:
 
 
     def start_tracking(self) -> None:
-        logger.info("Started tracking session")
+        try:
+            logger.info("Started tracking session")
 
-        current_timestamp = datetime.now(timezone.utc)
-        st.session_state[namespace_key]["start_timestamp"] = current_timestamp.isoformat()
-        st.session_state[namespace_key][
-            "query_params"
-        ] = st.experimental_get_query_params()
-        self.track_rerun()
+            current_timestamp = datetime.now(timezone.utc)
+            st.session_state[namespace_key]["start_timestamp"] = current_timestamp.isoformat()
+            st.session_state[namespace_key][
+                "query_params"
+            ] = st.experimental_get_query_params()
+            self.track_rerun()
+        except Exception as e:
+            logger.exception(f"Failed: {e}")
 
 
     def stop_tracking(self) -> None:
-        current_timestamp = datetime.now(timezone.utc)
-        st.session_state[namespace_key]["end_timestamp"] = current_timestamp.isoformat()
+        try:
+            current_timestamp = datetime.now(timezone.utc)
+            st.session_state[namespace_key]["end_timestamp"] = current_timestamp.isoformat()
 
-        session_state_dict = st.session_state.to_dict()
-        op(session_state_dict)
-        # with open("session_state.json", "a") as f:
-        #     f.write(f"{json.dumps(session_state_dict, sort_keys=True)}\n")
+            session_state_dict = st.session_state.to_dict()
+            for k, v in session_state_dict.items():
+                if type(v).__module__ == "__builtin__":
+                    session_state_dict[k] = str(v)
+            for interaction in session_state_dict[namespace_key]["interactions"]:
+                for k, v in interaction.items():
+                    if type(v).__module__ == "__builtin__":
+                        interaction[k] = str(v)
 
-        insert_new_doc(
-            self.application_name,
-            session_state_dict[namespace_key]["session_id"],
-            session_state_dict,
-        )
-        self.db_adapter.insert_row(session_state_dict)
-        logger.info("Stopped tracking session")
+            op(session_state_dict)
+            # with open("session_state.json", "a") as f:
+            #     f.write(f"{json.dumps(session_state_dict, sort_keys=True)}\n")
+
+            insert_new_doc(
+                self.application_name,
+                session_state_dict[namespace_key]["session_id"],
+                session_state_dict,
+            )
+            self.db_adapter.insert_row(session_state_dict)
+            logger.info("Stopped tracking session")
+        except Exception as e:
+            logger.exception(f"Failed: {e}")
 
 
     @contextmanager
     def track(self):
-        current_session_id = str(uuid.uuid4())
-
-        if namespace_key not in st.session_state:
-            st.session_state[namespace_key] = {}
-            st.session_state[namespace_key]["interactions"] = []
-        st.session_state[namespace_key]["session_id"] = current_session_id
+        try:
+            if namespace_key not in st.session_state:
+                st.session_state[namespace_key] = {}
+                st.session_state[namespace_key]["interactions"] = []
+                current_session_id = str(uuid.uuid4())
+                st.session_state[namespace_key]["session_id"] = current_session_id
+            else:
+                current_session_id = st.session_state[namespace_key]["session_id"]
+        except Exception as e:
+            logger.exception(f"Failed: {e}")
 
         with logger.contextualize(session_id=current_session_id):
             self.start_tracking()
