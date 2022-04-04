@@ -5,19 +5,13 @@ from typing import Any
 from google.cloud import firestore
 from google.oauth2 import service_account
 
-config_path = "/Users/riyad/Downloads/firestore.json"
-
-with open(config_path) as f:
-    firestore_config = json.load(f)
-
-creds = service_account.Credentials.from_service_account_info(firestore_config)
-db = firestore.Client(credentials=creds)
-
 
 class FirestoreAdapter:
-    def __init__(self, collection_name: str) -> None:
+    def __init__(self, firestore_config: dict[str, Any], collection_name: str) -> None:
         self.collection_name = collection_name
-        self.collection_ref = db.collection(collection_name)
+        creds = service_account.Credentials.from_service_account_info(firestore_config)
+        self.db = firestore.Client(credentials=creds)
+        self.collection_ref = self.db.collection(collection_name)
 
     def get_all_documents(collection_ref):
         for doc in collection_ref.stream():

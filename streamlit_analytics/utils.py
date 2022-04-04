@@ -57,7 +57,8 @@ class StreamlitAnalytics:
             self.query_param_keys = set(default_vals.keys())
         self.db_uri = db_uri
         self.db_adapter = DbAdapter(db_uri)
-        self.firestore_adapter = FirestoreAdapter(application_name)
+        firestore_config = st.secrets["firestore"]
+        self.firestore_adapter = FirestoreAdapter(firestore_config, application_name)
 
     def sync_query_params_to_session_state(self) -> None:
         query_params = st.experimental_get_query_params()
