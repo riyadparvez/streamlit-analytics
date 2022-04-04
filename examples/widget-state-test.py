@@ -27,7 +27,8 @@ def f():
     print("========================")
 
 
-sa = StreamlitAnalytics("analytics-test", True, default_vals, db_uri="sqlite:////tmp/st.db",)
+application_name = "analytics-test"
+sa = StreamlitAnalytics(application_name, True, default_vals, db_uri="sqlite:////tmp/st.db", firestore_collection_name=application_name)
 
 with sa.track():
     # with track("analytics-test", default_vals):

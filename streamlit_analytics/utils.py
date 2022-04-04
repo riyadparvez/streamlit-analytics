@@ -46,7 +46,6 @@ class StreamlitAnalytics:
         default_vals: dict[str, Any] | None = None,
         db_uri: str = None,
         json_file_path: str = None,
-        firestore_key_file: str = None,
         firestore_collection_name: str = None,
     ) -> None:
         self.application_name = application_name
@@ -55,10 +54,15 @@ class StreamlitAnalytics:
         self.sync_query_params = self.default_vals is not None
         if self.sync_query_params:
             self.query_param_keys = set(default_vals.keys())
-        self.db_uri = db_uri
-        self.db_adapter = DbAdapter(db_uri)
-        firestore_config = st.secrets["firestore"]
-        self.firestore_adapter = FirestoreAdapter(firestore_config, application_name)
+        if isinstance(db_uri, str):
+            self.db_uri = db_uri
+            self.db_adapter = DbAdapter(db_uri)
+            logger.debug(f"Initialized DB client")
+        if isinstance(firestore_collection_name, str):
+            self.firestore_collection_name = firestore_collection_name
+            firestore_config = st.secrets["firestore"]
+            self.firestore_adapter = FirestoreAdapter(firestore_config, firestore_collection_name)
+            logger.debug(f"Initialized firebase")
 
     def sync_query_params_to_session_state(self) -> None:
         query_params = st.experimental_get_query_params()

@@ -24,7 +24,8 @@ requests = "*"
 sqlalchemy = "*"
 sqlmodel = "*"
 streamlit = "*"
-streamlit-analytics = {editable = true,git = "git@github.com/riyadparvez/streamlit-analytics.git"}
+#streamlit-analytics = {editable = true,git = "git@github.com/riyadparvez/streamlit-analytics.git"}
+streamlit-analytics = {path = "../", editable = true}
 watchdog = "*"
 
 [requires]

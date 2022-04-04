@@ -4,6 +4,7 @@ from typing import Any
 
 from google.cloud import firestore
 from google.oauth2 import service_account
+from loguru import logger
 
 
 class FirestoreAdapter:
@@ -19,8 +20,9 @@ class FirestoreAdapter:
 
     def insert_doc(self, key: str, document: dict[str, Any]):
         document = document.copy()
-        document["mytime"] = firestore.SERVER_TIMESTAMP
-        self.collection_ref.document(key).set(document)
+        document["ingestion_timestamp"] = firestore.SERVER_TIMESTAMP
+        result = self.collection_ref.document(key).set(document)
+        logger.debug(f"Wrote to Firestore {result}")
 
     def f(self, window: int):
         """
@@ -29,8 +31,8 @@ class FirestoreAdapter:
         now = datetime.now(timezone.utc)
         filtered_timestamp = now - timedelta(hours=window)
         docs = (
-            db.collection(collection_name)
-            .where("mytime", ">=", filtered_timestamp)
+            self.db.collection(collection_name)
+            .where("ingestion_timestamp", ">=", filtered_timestamp)
             .stream()
         )
         for doc in docs:

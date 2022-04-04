@@ -8,10 +8,12 @@ d = {
     "B": "Blue",
 }
 
+application_name = "analytics-test"
 sa = StreamlitAnalytics(
-    "analytics-test",
+    application_name,
     True,
     db_uri="sqlite:////tmp/st.db",
+    firestore_collection_name=application_name,
 )
 
 with sa.track():
