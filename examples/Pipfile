@@ -1,0 +1,31 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+ipdb = "*"
+mypy = "*"
+pytest = "*"
+
+[packages]
+google-cloud-firestore = "*"
+loguru = "*"
+notifiers = "*"
+numpy = "*"
+objprint = "*"
+pandas = "*"
+plotly = "*"
+plotly-express = "*"
+psycopg2-binary = "*"
+python-dotenv = "*"
+pyyaml = "*"
+requests = "*"
+sqlalchemy = "*"
+sqlmodel = "*"
+streamlit = "*"
+streamlit-analytics = {editable = true,git = "git@github.com/riyadparvez/streamlit-analytics.git"}
+watchdog = "*"
+
+[requires]
+python_version = "3.9"

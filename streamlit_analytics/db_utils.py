@@ -4,7 +4,7 @@ from sqlalchemy.dialects.sqlite import JSON
 from sqlmodel import Column, Field, Session, SQLModel, create_engine, select
 from typing import Any
 
-from constants import *
+from .constants import *
 
 
 class Analytics(SQLModel, table=True):

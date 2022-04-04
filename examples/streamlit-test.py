@@ -1,5 +1,5 @@
 import streamlit as st
-from utils import StreamlitAnalytics
+from streamlit_analytics import StreamlitAnalytics
 
 d = {
     "G": "Green",

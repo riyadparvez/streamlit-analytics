@@ -4,7 +4,7 @@ from loguru import logger
 from typing import Any
 
 from objprint import config, op, install
-from utils import *
+from streamlit_analytics import *
 
 install()
 config(
