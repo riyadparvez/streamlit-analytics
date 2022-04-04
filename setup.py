@@ -3,14 +3,14 @@ import setuptools
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-packages = ['streamlit_analytics']
+packages = ["streamlit_analytics"]
 
 requires = [
-    'loguru',
-    'pandas',
-    'streamlit',
-    'sqlalchemy',
-    'sqlmodel',
+    "loguru",
+    "pandas",
+    "streamlit",
+    "sqlalchemy",
+    "sqlmodel",
 ]
 
 setuptools.setup(
@@ -29,6 +29,6 @@ setuptools.setup(
         "License :: Proprietary",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.7',
-    install_requires=requires
+    python_requires=">=3.7",
+    install_requires=requires,
 )

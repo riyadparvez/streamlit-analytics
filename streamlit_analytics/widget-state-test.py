@@ -27,9 +27,10 @@ def f():
     print("========================")
 
 
-sa = StreamlitAnalytics("analytics-test", default_vals)
+sa = StreamlitAnalytics("analytics-test", True, default_vals, db_uri="sqlite:////tmp/st.db",)
 
 with sa.track():
+    # with track("analytics-test", default_vals):
     temperature = st.slider(
         "Temperature",
         min_value=-100.0,

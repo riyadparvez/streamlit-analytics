@@ -12,7 +12,7 @@ from typing import Any, Callable, Final
 from constants import *
 from firestore_utils import *
 from db_utils import *
-from objprint import config, op, install; install(); config(line_number=True, arg_name=True,)
+from objprint import op
 
 
 def log_formatter(record):
@@ -30,16 +30,19 @@ logger.add(
 
 _DO_NOTHING: Final[Callable] = lambda: None
 
+
 def _serialize(d: dict[str, Any]) -> dict[str, Any]:
     for k, v in d.items():
         if type(v).__module__ != "builtins" and not isinstance(v, datetime):
-            op(k)
             d[k] = str(v)
     return d
 
+
 class StreamlitAnalytics:
-    def __init__(self,
+    def __init__(
+        self,
         application_name: str,
+        print_analytics: bool = False,
         default_vals: dict[str, Any] | None = None,
         db_uri: str = None,
         json_file_path: str = None,
@@ -47,13 +50,14 @@ class StreamlitAnalytics:
         firestore_collection_name: str = None,
     ) -> None:
         self.application_name = application_name
+        self.print_analytics = print_analytics
         self.default_vals = default_vals
         self.sync_query_params = self.default_vals is not None
         if self.sync_query_params:
             self.query_param_keys = set(default_vals.keys())
-        self.db_adapter = DbAdapter("sqlite:////tmp/st.db")
+        self.db_uri = db_uri
+        self.db_adapter = DbAdapter(db_uri)
         self.firestore_adapter = FirestoreAdapter(application_name)
-
 
     def sync_query_params_to_session_state(self) -> None:
         query_params = st.experimental_get_query_params()
@@ -70,7 +74,6 @@ class StreamlitAnalytics:
         for key, val in sync_vals.items():
             st.session_state[key] = val
 
-
     def sync_session_state_to_query_params(self) -> None:
         sync_values = {
             k: st.session_state[k]
@@ -79,18 +82,19 @@ class StreamlitAnalytics:
 
         st.experimental_set_query_params(**sync_values)
 
-
     def sync_widget_state(self, widget_key: str, on_change_func: Callable) -> None:
         if self.sync_query_params:
             self.sync_session_state_to_query_params()
-        logger.info(f"On {widget_key} changed")        
-        st.session_state[namespace_key]["interactions"].append({widget_key: st.session_state[widget_key]})
+        logger.info(f"On {widget_key} changed")
+        st.session_state[namespace_key]["interactions"].append(
+            {widget_key: st.session_state[widget_key]}
+        )
         on_change_func()
 
-
-    def get_on_change_func(self, widget_key: str, on_change_func: Callable = _DO_NOTHING) -> Callable:
+    def get_on_change_func(
+        self, widget_key: str, on_change_func: Callable = _DO_NOTHING
+    ) -> Callable:
         return partial(self.sync_widget_state, widget_key, on_change_func)
-
 
     def track_rerun(self) -> None:
         if (
@@ -105,7 +109,6 @@ class StreamlitAnalytics:
             if self.sync_query_params:
                 self.sync_query_params_to_session_state()
 
-
     def start_tracking(self) -> None:
         try:
             logger.info("Started tracking session")
@@ -119,7 +122,6 @@ class StreamlitAnalytics:
         except Exception as e:
             logger.exception(f"Failed: {e}")
 
-
     def stop_tracking(self) -> None:
         try:
             current_timestamp = datetime.now(timezone.utc)
@@ -127,9 +129,13 @@ class StreamlitAnalytics:
 
             session_state_dict = st.session_state.to_dict()
             session_state_dict = _serialize(session_state_dict)
-            session_state_dict[namespace_key]["interactions"] = [_serialize(interaction) for interaction in session_state_dict[namespace_key]["interactions"]]
+            session_state_dict[namespace_key]["interactions"] = [
+                _serialize(interaction)
+                for interaction in session_state_dict[namespace_key]["interactions"]
+            ]
 
-            op(session_state_dict)
+            if self.print_analytics:
+                op(session_state_dict)
             # with open("session_state.json", "a") as f:
             #     f.write(f"{json.dumps(session_state_dict, sort_keys=True)}\n")
 
@@ -142,7 +148,6 @@ class StreamlitAnalytics:
             logger.info("Stopped tracking session")
         except Exception as e:
             logger.exception(f"Failed: {e}")
-
 
     @contextmanager
     def track(self):
@@ -161,3 +166,22 @@ class StreamlitAnalytics:
             self.start_tracking()
             yield
             self.stop_tracking()
+
+
+def track(
+    application_name: str,
+    default_vals: dict[str, Any] | None = None,
+    db_uri: str = None,
+    json_file_path: str = None,
+    firestore_key_file: str = None,
+    firestore_collection_name: str = None,
+):
+    sa = StreamlitAnalytics(
+        application_name,
+        default_vals,
+        db_uri,
+        json_file_path,
+        firestore_key_file,
+        firestore_collection_name,
+    )
+    return sa.track

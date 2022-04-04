@@ -6,6 +6,7 @@ from typing import Any
 
 from constants import *
 
+
 class Analytics(SQLModel, table=True):
     id: int = Field(default=None, primary_key=True)
     start_timestamp: datetime
@@ -22,20 +23,22 @@ class DbAdapter:
         self.db_engine = create_engine(db_url)
         SQLModel.metadata.create_all(self.db_engine)
 
-
     def insert_row(self, session_analytics: dict[str, Any]) -> None:
         with Session(self.db_engine) as session:
             # Writing
             start_timestamp = session_analytics[namespace_key]["start_timestamp"]
             end_timestamp = session_analytics[namespace_key]["end_timestamp"]
-            session_analytics[namespace_key]["start_timestamp"] = session_analytics[namespace_key]["start_timestamp"].isoformat()
-            session_analytics[namespace_key]["end_timestamp"] = session_analytics[namespace_key]["end_timestamp"].isoformat()
+            session_analytics[namespace_key]["start_timestamp"] = session_analytics[
+                namespace_key
+            ]["start_timestamp"].isoformat()
+            session_analytics[namespace_key]["end_timestamp"] = session_analytics[
+                namespace_key
+            ]["end_timestamp"].isoformat()
 
             current_session = Analytics(
                 start_timestamp=start_timestamp,
                 end_timestamp=end_timestamp,
-                session_values = session_analytics,
+                session_values=session_analytics,
             )
             session.add(current_session)
             session.commit()
-            
