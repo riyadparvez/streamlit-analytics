@@ -54,10 +54,15 @@ class StreamlitAnalytics:
         self.sync_query_params = self.default_vals is not None
         if self.sync_query_params:
             self.query_param_keys = set(default_vals.keys())
+
+        self.json_file_path = json_file_path
+        self.db_adapter = None
         if isinstance(db_uri, str):
             self.db_uri = db_uri
             self.db_adapter = DbAdapter(db_uri)
             logger.debug(f"Initialized DB client")
+
+        self.firestore_adapter = None
         if isinstance(firestore_collection_name, str):
             self.firestore_collection_name = firestore_collection_name
             firestore_config = st.secrets["firestore"]
@@ -141,15 +146,19 @@ class StreamlitAnalytics:
 
             if self.print_analytics:
                 op(session_state_dict)
-            # with open("session_state.json", "a") as f:
-            #     f.write(f"{json.dumps(session_state_dict, sort_keys=True)}\n")
+            
+            if self.json_file_path is not None:
+                with open(self.json_file_path, "a") as f:
+                    f.write(f"{json.dumps(session_state_dict, sort_keys=True)}\n")
 
-            self.firestore_adapter.insert_doc(
-                session_state_dict[namespace_key]["session_id"],
-                session_state_dict,
-            )
+            if self.firestore_adapter is not None:
+                self.firestore_adapter.insert_doc(
+                    session_state_dict[namespace_key]["session_id"],
+                    session_state_dict,
+                )
 
-            self.db_adapter.insert_row(session_state_dict)
+            if self.db_adapter is not None:
+                self.db_adapter.insert_row(session_state_dict)
             logger.info("Stopped tracking session")
         except Exception as e:
             logger.exception(f"Failed: {e}")
