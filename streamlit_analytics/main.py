@@ -181,6 +181,10 @@ class StreamlitAnalytics:
             yield
             self.stop_tracking()
 
+    @property
+    def session_id(self) -> str:
+        return st.session_state[namespace_key]["session_id"]
+
 
 def track(
     application_name: str,
