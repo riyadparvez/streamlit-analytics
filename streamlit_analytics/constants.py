@@ -1,4 +1,7 @@
 from typing import Final
 
+runs_key: Final[str] = "runs"
 current_run_key: Final[str] = "current_run"
-namespace_key: Final[str] = "riyad_utils"
+session_key: Final[str] = "session"
+
+serialization_keys: tuple[str] = (runs_key, session_key,)
