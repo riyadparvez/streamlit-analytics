@@ -23,12 +23,12 @@ default_vals: dict[str, Any] = {
 
 def f():
     print("========================")
-    print("boys boys")
+    print("change change change")
     print("========================")
 
 
 application_name = "analytics-test"
-sa = StreamlitAnalytics(application_name, True, default_vals, db_uri="sqlite:////tmp/st.db", firestore_collection_name=application_name)
+sa = StreamlitAnalytics(application_name, print_analytics=True, default_vals=default_vals, db_uri="sqlite:////tmp/st.db", firestore_collection_name=application_name)
 
 with sa.track():
     # with track("analytics-test", default_vals):

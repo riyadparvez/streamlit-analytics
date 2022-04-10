@@ -11,8 +11,8 @@ d = {
 application_name = "analytics-test"
 sa = StreamlitAnalytics(
     application_name,
-    True,
-    db_uri="sqlite:////tmp/st.db",
+    print_analytics=True,
+    # db_uri="sqlite:////tmp/st.db",
     firestore_collection_name=application_name,
 )
 

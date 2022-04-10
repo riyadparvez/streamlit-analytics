@@ -42,6 +42,7 @@ class StreamlitAnalytics:
     def __init__(
         self,
         application_name: str,
+        namespace_key: str = DEFAULT_NAMESPACE_KEY,
         print_analytics: bool = False,
         default_vals: dict[str, Any] | None = None,
         db_uri: str = None,
@@ -49,6 +50,7 @@ class StreamlitAnalytics:
         firestore_collection_name: str = None,
     ) -> None:
         self.application_name = application_name
+        self.namespace_key =namespace_key
         self.print_analytics = print_analytics
         self.default_vals = default_vals
         self.sync_query_params = self.default_vals is not None
@@ -96,7 +98,7 @@ class StreamlitAnalytics:
         if self.sync_query_params:
             self.sync_session_state_to_query_params()
         logger.info(f"On {widget_key} changed")
-        st.session_state[session_key]["interactions"].append(
+        st.session_state[self.namespace_key]["interactions"].append(
             {widget_key: st.session_state[widget_key]}
         )
         on_change_func()
@@ -112,29 +114,29 @@ class StreamlitAnalytics:
         """
         current_timestamp = datetime.now(timezone.utc)
         try:
-            if session_key not in st.session_state:
-                st.session_state[session_key] = {}
-                st.session_state[session_key][runs_key] = []
-                st.session_state[session_key]["interactions"] = []
+            if self.namespace_key not in st.session_state:
+                st.session_state[self.namespace_key] = {}
+                st.session_state[self.namespace_key][runs_key] = []
+                st.session_state[self.namespace_key]["interactions"] = []
                 current_session_id = str(uuid.uuid4())
-                st.session_state[session_key]["session_id"] = current_session_id
-                st.session_state[session_key]["start_timestamp"] = current_timestamp
+                st.session_state[self.namespace_key]["session_id"] = current_session_id
+                st.session_state[self.namespace_key]["start_timestamp"] = current_timestamp
             else:
-                current_session_id = st.session_state[session_key]["session_id"]
+                current_session_id = st.session_state[self.namespace_key]["session_id"]
+                logger.info(f"New fresh session: {current_session_id}",)
 
-            if current_run_key in st.session_state[session_key]:
-                st.session_state[session_key][current_run_key] = st.session_state[session_key][current_run_key].copy()
-                st.session_state[session_key][current_run_key]["run_number"] += 1
-                logger.info(f"{st.session_state[session_key][current_run_key]['run_number']}th run")
-                st.session_state[session_key][current_run_key]["start_timestamp"] = current_timestamp
+            if current_run_key in st.session_state[self.namespace_key]:
+                st.session_state[self.namespace_key][current_run_key] = st.session_state[self.namespace_key][current_run_key].copy()
+                st.session_state[self.namespace_key][current_run_key]["run_number"] += 1
+                logger.info(f"{st.session_state[self.namespace_key][current_run_key]['run_number']}th run")
             else:
                 logger.info("New fresh run")
-                st.session_state[session_key][current_run_key] = {}
-                st.session_state[session_key][current_run_key]["run_number"] = 1
-                st.session_state[session_key][current_run_key]["start_timestamp"] = current_timestamp
+                st.session_state[self.namespace_key][current_run_key] = {}
+                st.session_state[self.namespace_key][current_run_key]["run_number"] = 1
                 if self.sync_query_params:
                     self.sync_query_params_to_session_state()
 
+            st.session_state[self.namespace_key][current_run_key]["start_timestamp"] = current_timestamp
         except Exception as e:
             logger.exception(f"Failed: {e}")
 
@@ -152,13 +154,13 @@ class StreamlitAnalytics:
     def stop_tracking(self) -> None:
         try:
             current_timestamp = datetime.now(timezone.utc)
-            st.session_state[session_key]["end_timestamp"] = current_timestamp
-            st.session_state[session_key][current_run_key]["end_timestamp"] = current_timestamp
-            st.session_state[session_key][runs_key].append(st.session_state[session_key][current_run_key])
+            st.session_state[self.namespace_key]["end_timestamp"] = current_timestamp
+            st.session_state[self.namespace_key][current_run_key]["end_timestamp"] = current_timestamp
+            st.session_state[self.namespace_key][runs_key].append(st.session_state[self.namespace_key][current_run_key])
 
             st_session_state_dict = st.session_state.to_dict()
             # Only write the necessary keys
-            session_state_dict = st_session_state_dict[session_key]
+            session_state_dict = st_session_state_dict[self.namespace_key].copy()
             current_run = session_state_dict.pop(current_run_key, None)
             session_state_dict = _serialize(session_state_dict)
             session_state_dict["interactions"] = [
@@ -188,7 +190,7 @@ class StreamlitAnalytics:
     @contextmanager
     def track(self):
         self.track_new_session_run()
-        current_session_id = st.session_state[session_key]["session_id"]
+        current_session_id = st.session_state[self.namespace_key]["session_id"]
         with logger.contextualize(session_id=current_session_id):
             self.start_tracking()
             yield
@@ -196,7 +198,7 @@ class StreamlitAnalytics:
 
     @property
     def session_id(self) -> str:
-        return st.session_state[session_key]["session_id"]
+        return st.session_state[self.namespace_key]["session_id"]
 
 
 def track(

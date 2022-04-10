@@ -31,13 +31,13 @@ class DbAdapter:
     def insert_row(self, session_analytics: dict[str, Any]) -> None:
         with Session(self.db_engine) as session:
             # Writing
-            start_timestamp = session_analytics[session_key]["start_timestamp"]
-            end_timestamp = session_analytics[session_key]["end_timestamp"]
-            session_analytics[session_key]["start_timestamp"] = session_analytics[
-                session_key
+            start_timestamp = session_analytics[namespace_key]["start_timestamp"]
+            end_timestamp = session_analytics[namespace_key]["end_timestamp"]
+            session_analytics[namespace_key]["start_timestamp"] = session_analytics[
+                namespace_key
             ]["start_timestamp"].isoformat()
-            session_analytics[session_key]["end_timestamp"] = session_analytics[
-                session_key
+            session_analytics[namespace_key]["end_timestamp"] = session_analytics[
+                namespace_key
             ]["end_timestamp"].isoformat()
 
             current_session = Analytics(
