@@ -4,7 +4,7 @@ from typing import Any
 
 from google.cloud import firestore
 from google.oauth2 import service_account
-from loguru import logger
+from .custom_logger import logger
 
 
 class FirestoreAdapter:
@@ -18,11 +18,11 @@ class FirestoreAdapter:
         for doc in collection_ref.stream():
             print(f"{doc.id} => {doc.to_dict()}")
 
-    def insert_doc(self, key: str, document: dict[str, Any]):
+    def insert_doc(self, key: str, document: dict[str, Any]) -> None:
         document = document.copy()
         document["ingestion_timestamp"] = firestore.SERVER_TIMESTAMP
         result = self.collection_ref.document(key).set(document)
-        logger.debug(f"Wrote to Firestore {result}")
+        logger.debug(f"Wrote to Firestore")
 
     def f(self, window: int):
         """

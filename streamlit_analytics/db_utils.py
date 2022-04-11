@@ -5,6 +5,7 @@ from sqlmodel import Column, Field, Session, SQLModel, create_engine, select
 from typing import Any
 
 from .constants import *
+from .custom_logger import logger
 
 
 class Analytics(SQLModel, table=True):
@@ -18,6 +19,7 @@ class Analytics(SQLModel, table=True):
     #     index=True,
     #     nullable=False,
     # )
+
 
 class DbAdapter:
     def __init__(self, db_url: str | None):

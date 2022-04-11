@@ -6,27 +6,14 @@ import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from functools import partial
-from loguru import logger
 from objprint import op
 from typing import Any, Callable, Final
 
 from .constants import *
+from .custom_logger import logger
 from .firestore_utils import *
 from .db_utils import *
 
-
-def log_formatter(record):
-    if len(record["extra"]) > 0:
-        fmt = "<green>{time:YYYY-MM-DD at HH:mm:ss}</green> <blue>|{level: ^8}|</blue> <cyan>{module: ^10}:{function: ^15}:{line: >3}</cyan> |{extra}| - <level>{message}</level>"
-    else:
-        fmt = "<green>{time:YYYY-MM-DD at HH:mm:ss}</green> <blue>|{level: ^8}|</blue> <cyan>{module: ^10}:{function: ^15}:{line: >3}</cyan> - <level>{message}</level>"
-    return fmt + "\n{exception}"
-
-
-logger.remove()
-logger.add(
-    sys.stdout, level="INFO", colorize=False, format=log_formatter, backtrace=True
-)
 
 _DO_NOTHING: Final[Callable] = lambda: None
 
@@ -50,7 +37,7 @@ class StreamlitAnalytics:
         firestore_collection_name: str = None,
     ) -> None:
         self.application_name = application_name
-        self.namespace_key =namespace_key
+        self.namespace_key = namespace_key
         self.print_analytics = print_analytics
         self.default_vals = default_vals
         self.sync_query_params = self.default_vals is not None
@@ -68,7 +55,9 @@ class StreamlitAnalytics:
         if isinstance(firestore_collection_name, str):
             self.firestore_collection_name = firestore_collection_name
             firestore_config = st.secrets["firestore"]
-            self.firestore_adapter = FirestoreAdapter(firestore_config, firestore_collection_name)
+            self.firestore_adapter = FirestoreAdapter(
+                firestore_config, firestore_collection_name
+            )
             logger.debug(f"Initialized firebase")
 
     def sync_query_params_to_session_state(self) -> None:
@@ -79,7 +68,9 @@ class StreamlitAnalytics:
         for k, v in query_params.items():
             if k in self.default_vals:
                 target_type = type(self.default_vals[k])
-                sync_vals[k] = [target_type(query_param) for query_param in query_params]
+                sync_vals[k] = [
+                    target_type(query_param) for query_param in query_params
+                ]
 
         # Set rest of the default values
         sync_vals = self.default_vals | sync_vals
@@ -120,15 +111,23 @@ class StreamlitAnalytics:
                 st.session_state[self.namespace_key]["interactions"] = []
                 current_session_id = str(uuid.uuid4())
                 st.session_state[self.namespace_key]["session_id"] = current_session_id
-                st.session_state[self.namespace_key]["start_timestamp"] = current_timestamp
+                st.session_state[self.namespace_key][
+                    "start_timestamp"
+                ] = current_timestamp
             else:
                 current_session_id = st.session_state[self.namespace_key]["session_id"]
-                logger.info(f"New fresh session: {current_session_id}",)
+                logger.info(
+                    f"New fresh session: {current_session_id}",
+                )
 
             if current_run_key in st.session_state[self.namespace_key]:
-                st.session_state[self.namespace_key][current_run_key] = st.session_state[self.namespace_key][current_run_key].copy()
+                st.session_state[self.namespace_key][
+                    current_run_key
+                ] = st.session_state[self.namespace_key][current_run_key].copy()
                 st.session_state[self.namespace_key][current_run_key]["run_number"] += 1
-                logger.info(f"{st.session_state[self.namespace_key][current_run_key]['run_number']}th run")
+                logger.info(
+                    f"{st.session_state[self.namespace_key][current_run_key]['run_number']}th run"
+                )
             else:
                 logger.info("New fresh run")
                 st.session_state[self.namespace_key][current_run_key] = {}
@@ -136,15 +135,16 @@ class StreamlitAnalytics:
                 if self.sync_query_params:
                     self.sync_query_params_to_session_state()
 
-            st.session_state[self.namespace_key][current_run_key]["start_timestamp"] = current_timestamp
+            st.session_state[self.namespace_key][current_run_key][
+                "start_timestamp"
+            ] = current_timestamp
         except Exception as e:
             logger.exception(f"Failed: {e}")
-
 
     def start_tracking(self) -> None:
         try:
             logger.info("Started tracking run")
-
+            self.track_new_session_run()
             # st.session_state[session_key][
             #     "query_params"
             # ] = st.experimental_get_query_params()
@@ -155,8 +155,12 @@ class StreamlitAnalytics:
         try:
             current_timestamp = datetime.now(timezone.utc)
             st.session_state[self.namespace_key]["end_timestamp"] = current_timestamp
-            st.session_state[self.namespace_key][current_run_key]["end_timestamp"] = current_timestamp
-            st.session_state[self.namespace_key][runs_key].append(st.session_state[self.namespace_key][current_run_key])
+            st.session_state[self.namespace_key][current_run_key][
+                "end_timestamp"
+            ] = current_timestamp
+            st.session_state[self.namespace_key][runs_key].append(
+                st.session_state[self.namespace_key][current_run_key]
+            )
 
             st_session_state_dict = st.session_state.to_dict()
             # Only write the necessary keys
@@ -170,7 +174,7 @@ class StreamlitAnalytics:
 
             if self.print_analytics:
                 op(session_state_dict)
-            
+
             if self.json_file_path is not None:
                 with open(self.json_file_path, "a") as f:
                     f.write(f"{json.dumps(session_state_dict, sort_keys=True)}\n")
@@ -189,12 +193,9 @@ class StreamlitAnalytics:
 
     @contextmanager
     def track(self):
-        self.track_new_session_run()
-        current_session_id = st.session_state[self.namespace_key]["session_id"]
-        with logger.contextualize(session_id=current_session_id):
-            self.start_tracking()
-            yield
-            self.stop_tracking()
+        self.start_tracking()
+        yield
+        self.stop_tracking()
 
     @property
     def session_id(self) -> str:
